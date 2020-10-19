@@ -34,18 +34,32 @@ class Config(object):
     MAP_SIZE = 32
 
     # Training Meta
-    BATCH_SIZE = 2
+    BATCH_SIZE = 5
     G_D_RATIO = 2
     LEARNING_RATE = 6e-5
     LEARNING_RATE_DECAY_FACTOR = 0.9
     LEARNING_MOMENTUM = 0.999
-    MAX_EPOCH = 50
+    MAX_EPOCH = 5
     MOVING_AVERAGE_DECAY = 0.9999
     NUM_EPOCHS_PER_DECAY = 10.0 
-    STEPS_PER_EPOCH = 2000
-    STEPS_PER_EPOCH_VAL = 500
-    LOG_FR_TRAIN = int(STEPS_PER_EPOCH / 10)
-    LOG_FR_TEST  = int(STEPS_PER_EPOCH_VAL / 10)
+    STEPS_PER_EPOCH = 1
+    STEPS_PER_EPOCH_VAL = 1
+    LOG_FR_TRAIN = int(STEPS_PER_EPOCH / 1)
+    LOG_FR_TEST  = int(STEPS_PER_EPOCH_VAL / 1)
+
+
+    # BATCH_SIZE = 2
+    # G_D_RATIO = 2
+    # LEARNING_RATE = 6e-5
+    # LEARNING_RATE_DECAY_FACTOR = 0.9
+    # LEARNING_MOMENTUM = 0.999
+    # MAX_EPOCH = 50
+    # MOVING_AVERAGE_DECAY = 0.9999
+    # NUM_EPOCHS_PER_DECAY = 10.0 
+    # STEPS_PER_EPOCH = 2000
+    # STEPS_PER_EPOCH_VAL = 500
+    # LOG_FR_TRAIN = int(STEPS_PER_EPOCH / 10)
+    # LOG_FR_TEST  = int(STEPS_PER_EPOCH_VAL / 10)
 
     def __init__(self, gpu, root_dir, root_dir_val, mode):
         """Set values of computed attributes."""

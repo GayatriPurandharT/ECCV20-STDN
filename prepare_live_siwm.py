@@ -36,19 +36,22 @@ def mtcnn_caller(path, image_folder,image, output):
         # print('1&&&&&&_____________________&&&&&&&&&&&&&&&', img)
         if img is not None:
             # Get cropped and prewhitened image tensor
-            image = image.strip('.png')
-            img_cropped = mtcnn(img, save_path=output+image+'/'+image+'.png')
-            fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, flip_input=False)
-            input = cv2.imread(output+image+'/'+image+'.png')
-            # image = image.strip('.png')
-            # print('2&&&&&&_____________________&&&&&&&&&&&&&&&', input)
             try:
+                fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, flip_input=False)
+                input = cv2.imread(path+image_folder+image)
+                # image = image.strip('.png')
+                # print('2&&&&&&_____________________&&&&&&&&&&&&&&&', input)
+            
                 # image = image.strip('.jpg')
                 preds = fa.get_landmarks(input)
+                image = image.strip('.png')
+                os.mkdir(output+image+'/')
                 numpy.save(output+image+'/'+image, preds)
+                
+                img_cropped = mtcnn(img, save_path=output+image+'/'+image+'.png')
+                
             except IndexError as error:
                 print(error)
-            print('check output at',output+image+'/'+image+'.png')
 
 def get_live_videos(path, image_folder, image):
     if image.endswith('.mov'):
@@ -59,10 +62,10 @@ def get_live_videos(path, image_folder, image):
 if __name__ =='__main__':
 
     # inpfile = 'trainlist.txt'                        
-    path= '/root/datasets/siwm/Live/Train/'
+    path= '/root/datasets/siwm/Live/Val/'
     # if not os.path.isdir(new_testset_path):
         # os.mkdir(new_testset_path)
-    outpath = '/root/datasets/siwm/train/live/'
+    outpath = '/root/datasets/siwm/val/live/'
     # findvideos(inpfile, new_testset_path)
     image_folders = os.listdir(path)
     # print(image_folders)

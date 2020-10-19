@@ -13,8 +13,10 @@
 # U.S. Government is authorized to reproduce and distribute reprints for 
 # Governmental purposes not withstanding any copyright annotation thereon. 
 # ==============================================================================
+# !pip install numpy==1.16.1
 import tensorflow as tf
 import numpy as np
+import os
 import random
 import glob
 import cv2
@@ -28,6 +30,7 @@ class Dataset():
         if self.config.MODE == 'training':
             self.input_tensors = self.inputs_for_training(train_mode)
         elif self.config.MODE == 'testing':
+            # if self.inputs_for_testing() != None:
             self.input_tensors, self.name_list = self.inputs_for_testing()
         self.nextit = self.input_tensors.make_one_shot_iterator().get_next()
 
@@ -64,11 +67,15 @@ class Dataset():
         dataset = tf.data.Dataset.from_tensor_slices((li_data_samples, sp_data_samples))
         dataset = dataset.shuffle(shuffle_buffer_size).repeat(-1)
         if train_mode == 'train':
+            
             dataset = dataset.map(map_func=self.parse_fn, num_parallel_calls=autotune)
             dataset = dataset.batch(batch_size=self.config.BATCH_SIZE).prefetch(buffer_size=autotune)
+           
         else:
+            
             dataset = dataset.map(map_func=self.parse_fn_val, num_parallel_calls=autotune)
             dataset = dataset.batch(batch_size=self.config.BATCH_SIZE).prefetch(buffer_size=autotune)
+            
         return dataset
 
     def inputs_for_testing(self):
@@ -93,6 +100,7 @@ class Dataset():
     def parse_fn(self, file1, file2):
         config = self.config
         imsize = config.IMAGE_SIZE
+        # lm is the landmarks list on face. here are 66 but mine is 148
         lm_reverse_list = np.array([17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,
                            27,26,25,24,23,22,21,20,19,18,
                            28,29,30,31,36,35,34,33,32,
@@ -109,15 +117,27 @@ class Dataset():
                 print(_file1, len(meta))
             im_name = fr
             lm_name = fr[:-3] + 'npy'
-            image = Image.open(im_name)
-            width, height = image.size
-            image_li = image.resize((imsize,imsize))
-            image_li = np.array(image_li,np.float32)
-            lm_li = np.load(lm_name) / width
-            if np.random.rand() > 0.5:
-                image_li = cv2.flip(image_li, 1)
-                lm_li[:,0] = 1 - lm_li[:,0]
-                lm_li = lm_li[lm_reverse_list,:]
+            #lm_name = fr[:-12] + '.npy'
+            if os.path.isfile(lm_name):
+                image = Image.open(im_name)
+                width, height = image.size
+                image_li = image.resize((imsize,imsize))
+                image_li = np.array(image_li,np.float32)
+                
+
+                lm_li = np.load(lm_name, allow_pickle=True) / width
+                lm_li = lm_li[0,:,:]
+                
+                # print('_____________lm_li___________', lm_li.shape)
+                if np.random.rand() > 0.5:
+                    image_li = cv2.flip(image_li, 1)
+                    lm_li[:,0] = 1 - lm_li[:,0]
+                    # print('________dimenstions of lmli_______', lm_li[lm_reverse_list,:].shape)
+                    lm_li = lm_li[lm_reverse_list,:]
+                    print('_____________lm_name_________', lm_name)
+            
+            
+                
 
             # spoof
             _file2 = _file2.decode('UTF-8')
@@ -128,27 +148,43 @@ class Dataset():
                 print(_file2, len(meta))
             im_name = fr
             lm_name = fr[:-3] + 'npy'
-            image = Image.open(im_name)
-            width, height = image.size
-            image_sp = image.resize((imsize,imsize))
-            image_sp = np.array(image_sp,np.float32)
-            lm_sp = np.load(lm_name) / width
-            if np.random.rand() > 0.5:
-                image_sp = cv2.flip(image_sp, 1)
-                lm_sp[:,0] = 1 - lm_sp[:,0]
-                lm_sp = lm_sp[lm_reverse_list,:]
+            if os.path.isfile(lm_name):
+                #lm_name = fr[:-12] + '.npy'
+                # print('_____________lm_sp___________', np.load(lm_name, allow_pickle=True))
+                image = Image.open(im_name)
+                width, height = image.size
+                image_sp = image.resize((imsize,imsize))
+                image_sp = np.array(image_sp,np.float32)
+                
+                try:    
+                    lm_sp = np.load(lm_name, allow_pickle=True) / width
+                    lm_sp = lm_sp[0,:,:]
+                    # print('_____________lm_sp___________', lm_sp.shape)
+                    if np.random.rand() > 0.5:
+                        image_sp = cv2.flip(image_sp, 1)
+                        lm_sp[:,0] = 1 - lm_sp[:,0]
+                        # print('________dimenstions of lmsp_______', lm_sp[lm_reverse_list,:].shape)
+                        lm_sp = lm_sp[lm_reverse_list,:]
+                        print('_____________lm_name_________', lm_name)
+
+                except TypeError as t:
+                    print(t)
+                    print('_____________excelm_name_________', lm_name)
+            
 
             # offset map
             reg_map_sp = generate_offset_map(lm_sp, lm_li)
 
             return np.array(image_li,np.float32)/255, np.array(image_sp,np.float32)/255, reg_map_sp.astype(np.float32)
 
+        
         image_li, image_sp, reg_map_sp = tf.py_func(_parse_function, [file1, file2], [tf.float32, tf.float32, tf.float32])
         image_li   = tf.ensure_shape(image_li,   [imsize, imsize, 3])
         image_sp   = tf.ensure_shape(image_sp,   [imsize, imsize, 3])
         reg_map_sp = tf.ensure_shape(reg_map_sp, [imsize, imsize, 3])
         # data augmentation
-        image      = tf.stack([tf.image.random_brightness(image_li, 0.25), tf.image.random_brightness(image_sp, 0.25)], axis=0)
+        image = tf.stack([tf.image.random_brightness(image_li, 0.25), tf.image.random_brightness(image_sp, 0.25)], axis=0)
+
         return image, reg_map_sp
 
 
@@ -172,16 +208,28 @@ class Dataset():
                 input()
             im_name = fr
             lm_name = fr[:-3] + 'npy'
-            image = Image.open(im_name)
-            width, height = image.size
-            image_li = image.resize((imsize,imsize))
-            image_li = np.array(image_li,np.float32)
-            lm_li = np.load(lm_name) / width
-            if np.random.rand() > 0.5:
-                image_li = cv2.flip(image_li, 1)
-                lm_li[:,0] = 1 - lm_li[:,0]
-                lm_li = lm_li[lm_reverse_list,:]
+            #lm_name = fr[:-12] + '.npy'
+            if os.path.isfile(lm_name):
+                image = Image.open(im_name)
+                width, height = image.size
+                image_li = image.resize((imsize,imsize))
+                image_li = np.array(image_li,np.float32)
+                try:    
+                    lm_li = np.load(lm_name, allow_pickle=True) / width
+                    lm_li = lm_li[0,:,:]
+                    if np.random.rand() > 0.5:
+                        image_li = cv2.flip(image_li, 1)
+                        lm_li[:,0] = 1 - lm_li[:,0]
+                        lm_li = lm_li[lm_reverse_list,:]
+                        print('_____________vallm_name_________', lm_name)
 
+                except TypeError as t:
+                    print(t)
+                    print('_____________valexcelm_name_________', lm_name)
+
+            
+            
+            
             # spoof
             _file2 = _file2.decode('UTF-8')
             meta = glob.glob(_file2+'/*.png')
@@ -192,27 +240,39 @@ class Dataset():
                 input()
             im_name = fr
             lm_name = fr[:-3] + 'npy'
-            image = Image.open(im_name)
-            width, height = image.size
-            image_sp = image.resize((imsize,imsize))
-            image_sp = np.array(image_sp,np.float32)
-            lm_sp = np.load(lm_name) / width
-            if np.random.rand() > 0.5:
-                image_sp = cv2.flip(image_sp, 1)
-                lm_sp[:,0] = 1 - lm_sp[:,0]
-                lm_sp = lm_sp[lm_reverse_list,:]
+            #lm_name = fr[:-12] + '.npy'
+            if os.path.isfile(lm_name):
+                image = Image.open(im_name)
+                width, height = image.size
+                image_sp = image.resize((imsize,imsize))
+                image_sp = np.array(image_sp,np.float32)
+                try:    
+                    lm_sp = np.load(lm_name,allow_pickle=True) / width
+                    lm_sp = lm_sp[0,:,:]
+                    if np.random.rand() > 0.5:
+                        image_sp = cv2.flip(image_sp, 1)
+                        lm_sp[:,0] = 1 - lm_sp[:,0]
+                        lm_sp = lm_sp[lm_reverse_list,:]
+                        print('_____________vallm_name_________', lm_name)
 
+                except TypeError as t:
+                    print(t)
+                    print('_____________valexcelm_name_________', lm_name)
+            
+
+            
             # offset map
             reg_map_sp = generate_offset_map(lm_sp, lm_li)
 
             return np.array(image_li,np.float32)/255, np.array(image_sp,np.float32)/255, reg_map_sp.astype(np.float32)
-
+  
         image_li, image_sp, reg_map_sp = tf.py_func(_parse_function, [file1, file2], [tf.float32, tf.float32, tf.float32])
         image_li   = tf.ensure_shape(image_li,   [imsize, imsize, 3])
         image_sp   = tf.ensure_shape(image_sp,   [imsize, imsize, 3])
         reg_map_sp = tf.ensure_shape(reg_map_sp, [imsize, imsize, 3])
         # data augmentation
         image      = tf.stack([image_li, image_sp], axis=0)
+
         return image, reg_map_sp
 
     def parse_fn_test(self, file):

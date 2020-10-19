@@ -1,4 +1,5 @@
 #to extract frame and crop face and grt landmark points
+#Mask_Paper_6_003
 from facenet_pytorch import MTCNN, InceptionResnetV1
 from skimage import io
 import os
@@ -51,16 +52,20 @@ def mtcnn_caller(path, image_folder,image):
         # print('1&&&&&&_____________________&&&&&&&&&&&&&&&', img)
         if img is not None:
             # Get cropped and prewhitened image tensor
-            image = image.strip('.png')
-            img_cropped = mtcnn(img, save_path=path+'spoof/'+image+'/'+image+'.png')
-            fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, flip_input=False)
-            input = cv2.imread(path+'spoof/'+image+'/'+image+'.png')
-            # image = image.strip('.png')
-            # print('2&&&&&&_____________________&&&&&&&&&&&&&&&', input)
             try:
+                fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, flip_input=False)
+                input = cv2.imread(path+image_folder+image)
+                # image = image.strip('.png')
+                # print('2&&&&&&_____________________&&&&&&&&&&&&&&&', input)
+            
                 # image = image.strip('.jpg')
                 preds = fa.get_landmarks(input)
+                image = image.strip('.png')
+                os.mkdir(path+'spoof/'+image+'/')
                 numpy.save(path+'spoof/'+image+'/'+image, preds)
+                
+                img_cropped = mtcnn(img, save_path=path+'spoof/'+image+'/'+image+'.png')
+                
             except IndexError as error:
                 print(error)
 
@@ -72,8 +77,8 @@ def mtcnn_caller(path, image_folder,image):
     
 if __name__ =='__main__':
 
-    inpfile = 'vallist.txt'                        
-    new_testset_path= '/root/datasets/siwm/val/'
+    inpfile = 'trainlist.txt'                        
+    new_testset_path= '/root/datasets/siwm/train/'
     if not os.path.isdir(new_testset_path):
         os.mkdir(new_testset_path)
 

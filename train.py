@@ -14,7 +14,7 @@
 # Governmental purposes not withstanding any copyright annotation thereon. 
 # ==============================================================================
 from __future__ import absolute_import, division, print_function, unicode_literals
-
+import time
 import tensorflow as tf
 import numpy as np
 import cv2
@@ -110,6 +110,7 @@ def _step(config, data_batch, training_nn):
 
 
 def main(argv=None):
+  
   # Configurations
   config = Config(gpu='1',
                   root_dir='./data/train/',
@@ -191,4 +192,7 @@ def main(argv=None):
       avg_loss.reset()
 
 if __name__ == '__main__':
+  start = time.time()
   tf.app.run()
+  stop = time.time()
+  print('training time:', stop-start)
