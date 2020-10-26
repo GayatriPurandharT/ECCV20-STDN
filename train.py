@@ -146,50 +146,54 @@ def main(argv=None):
 
     avg_loss = Error()
     print_list = {}
-    for epoch in range(int(last_epoch), config.MAX_EPOCH):
-      start = time.time()
-      # Train one epoch
-      for step in range(config.STEPS_PER_EPOCH):
-        if step%config.G_D_RATIO ==0:
-          _losses = sess.run(losses+[g_op, d_op, fig])
-        else:
-          _losses = sess.run(losses+[g_op, fig])
+    with open(config.LOG_DIR + '/log.txt', 'w') as f:
+      for epoch in range(int(last_epoch), config.MAX_EPOCH):
+        start = time.time()
+        # Train one epoch
+        for step in range(config.STEPS_PER_EPOCH):
+          if step%config.G_D_RATIO ==0:
+            _losses = sess.run(losses+[g_op, d_op, fig])
+          else:
+            _losses = sess.run(losses+[g_op, fig])
 
-        # Logging
-        print_list['g_loss'] = _losses[0]
-        print_list['d_loss'] = _losses[1]
-        print_list['a_loss'] = _losses[2]
-        display_list = ['Epoch '+str(epoch+1)+'-'+str(step+1)+'/'+ str(config.STEPS_PER_EPOCH)+':'] +\
-                       [avg_loss(x) for x in print_list.items()]                  
-        print(*display_list+['          '], end='\r')
-        # Visualization
-        if step%config.LOG_FR_TRAIN ==0:
-          fname = config.LOG_DIR+'/Epoch-'+str(epoch+1)+'-'+str(step+1)+'.png'
-          cv2.imwrite(fname, _losses[-1])
-
-      # Model saving
-      saver.save(sess, config.LOG_DIR+'/ckpt', global_step=epoch+1)
-      print('\n', end='\r')
-
-      # Validate one epoch
-      for step in range(config.STEPS_PER_EPOCH_VAL):
-        _losses = sess.run(losses_val+[fig_val])
-
-        # Logging
-        print_list['g_loss'] = _losses[0]
-        print_list['d_loss'] = _losses[1]
-        print_list['a_loss'] = _losses[2]
-        display_list = ['Epoch '+str(epoch+1)+'-Val-'+str(step+1)+'/'+ str(config.STEPS_PER_EPOCH_VAL)+':'] +\
-                       [avg_loss(x, val=1) for x in print_list.items()]
-        print(*display_list+['          '], end='\r')
-        # Visualization
-        if step%config.LOG_FR_TEST ==0:
-            fname = config.LOG_DIR+'/Epoch-'+str(epoch+1)+'-Val-'+str(step+1)+'.png'
+          # Logging
+          print_list['g_loss'] = _losses[0]
+          print_list['d_loss'] = _losses[1]
+          print_list['a_loss'] = _losses[2]
+          display_list = ['Epoch '+str(epoch+1)+'-'+str(step+1)+'/'+ str(config.STEPS_PER_EPOCH)+':'] +\
+                         [avg_loss(x) for x in print_list.items()]                  
+          print(*display_list+['          '], end='\r')
+          #write loss to file
+          f.write(display_list+'\n')
+          # Visualization
+          if step%config.LOG_FR_TRAIN ==0:
+            fname = config.LOG_DIR+'/Epoch-'+str(epoch+1)+'-'+str(step+1)+'.png'
             cv2.imwrite(fname, _losses[-1])
 
-      # time of one epoch
-      print('\n    Time taken for epoch {} is {:3g} sec'.format(epoch + 1, time.time() - start))
-      avg_loss.reset()
+        # Model saving
+        saver.save(sess, config.LOG_DIR+'/ckpt', global_step=epoch+1)
+        print('\n', end='\r')
+
+        # Validate one epoch
+        for step in range(config.STEPS_PER_EPOCH_VAL):
+          _losses = sess.run(losses_val+[fig_val])
+
+          # Logging
+          print_list['g_loss'] = _losses[0]
+          print_list['d_loss'] = _losses[1]
+          print_list['a_loss'] = _losses[2]
+          display_list = ['Epoch '+str(epoch+1)+'-Val-'+str(step+1)+'/'+ str(config.STEPS_PER_EPOCH_VAL)+':'] +\
+                         [avg_loss(x, val=1) for x in print_list.items()]
+          print(*display_list+['          '], end='\r')
+          f.write(display_list+'\n')
+          # Visualization
+          if step%config.LOG_FR_TEST ==0:
+              fname = config.LOG_DIR+'/Epoch-'+str(epoch+1)+'-Val-'+str(step+1)+'.png'
+              cv2.imwrite(fname, _losses[-1])
+
+        # time of one epoch
+        print('\n    Time taken for epoch {} is {:3g} sec'.format(epoch + 1, time.time() - start))
+        avg_loss.reset()
 
 if __name__ == '__main__':
   start = time.time()

@@ -23,7 +23,7 @@ class Config(object):
     that need to be changed.
     """
     # GPU Usage
-    GPU_USAGE = '0'
+    GPU_USAGE = '1'
 
     # Log and Model Storage Default
     LOG_DIR = './log/STDN'

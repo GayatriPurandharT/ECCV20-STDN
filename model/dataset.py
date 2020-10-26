@@ -226,8 +226,6 @@ class Dataset():
                 except TypeError as t:
                     print(t)
                     print('_____________valexcelm_name_________', lm_name)
-
-            
             
             
             # spoof
