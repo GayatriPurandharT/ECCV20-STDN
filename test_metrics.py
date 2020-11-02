@@ -20,6 +20,8 @@ import time
 from model.dataset import Dataset
 from model.config import Config
 from model.model import Gen
+from metrics import eval_from_scores
+import numpy as np
 
 def _step(config, data_batch, training_nn):
   global_step = tf.train.get_or_create_global_step()
@@ -54,6 +56,10 @@ def main(argv=None):
   # Train
   _M, _s, _b, _C, _T, _imname = _step(config, dataset_test, False)
 
+
+  #making vars for storing score and target
+  scores = []
+  targets = []
   # Add ops to save and restore all the variables.
   saver = tf.train.Saver(max_to_keep=50,)
   with tf.Session(config=config.GPU_CONFIG) as sess:
@@ -74,10 +80,19 @@ def main(argv=None):
       print('**********************************************************')
 
     step_per_epoch = int(len(dataset_test.name_list) / config.BATCH_SIZE)
+    #step_per_epoch = 
     with open(config.LOG_DIR + '/test/score.txt', 'w') as f:
       for step in range(step_per_epoch):
         M, s, b, C, T, imname = sess.run([_M, _s, _b, _C, _T, _imname])
-        
+        ##########################changes here########################
+        score = M
+        scores.append(score)
+        if 'live' in str(imname): 
+            print('adding live')
+            targets.append(0)
+        elif 'spoof' in str(imname):
+            print('adding spoof')
+            targets.append(1) 
         # save the score
         for i in range(config.BATCH_SIZE):
             _name = imname[i].decode('UTF-8')
@@ -89,6 +104,18 @@ def main(argv=None):
             f.write(_line + '\n')  
             print(str(step+1)+'/'+str(step_per_epoch)+':'+_line, end='\r')  
     print("\n")
+  print('_______________metrics____________________')
+  print(np.array(scores), np.array(targets))
+  metrics_, best_thr, acc = eval_from_scores(np.array(scores), np.array(targets))
+  acer, apcer, npcer = metrics_
+  
+  print(f"ACER: {acer}")
+  print(f"APCER: {apcer}")
+  print(f"NPCER: {npcer}")
+  print(f"Best accuracy: {acc}")
+  print(f"At threshold: {best_thr}")
+#   return acer, apcer, npcer, acc, best_thr
 
 if __name__ == '__main__':
   tf.app.run()
+  
