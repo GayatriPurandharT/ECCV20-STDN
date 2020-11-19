@@ -26,6 +26,7 @@ def Gen(x, training_nn, scope):
   x1 = Conv(x0, nlayers[2], scope+'/conv1', training_nn)
   x1 = Conv(x1, nlayers[3], scope+'/conv2', training_nn)
   x1 = Downsample(x1, nlayers[2], scope+'/conv3', training_nn)
+  print(x1.summary())
   # Block 2
   x2 = Conv(x1, nlayers[2], scope+'/conv4', training_nn)
   x2 = Conv(x2, nlayers[3], scope+'/conv5', training_nn)

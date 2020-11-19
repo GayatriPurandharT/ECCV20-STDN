@@ -20,7 +20,6 @@ import time
 from model.dataset import Dataset
 from model.config import Config
 from model.model import Gen
-from model.utils import Conv
 from metrics import eval_from_scores
 import numpy as np
 
@@ -44,7 +43,6 @@ def _step(config, data_batch, training_nn):
   return M, s, b, C, T, im_name
 
 def main(argv=None): 
-  #print('model \n', Conv.x.summary())
   # Configurations
   config = Config(gpu='1',
                   root_dir='./data/test/',
@@ -60,9 +58,9 @@ def main(argv=None):
 
 
   #making vars for storing score and target
-  scores = []
-  targets = []
-  classes= ['live', 'paper']
+  #scores = []
+  #targets = []
+  classes= ['Live', 'paper','Half', 'Trans','_Eye','funnyeye','Paperglass','Paper_','_Mann','Mask_Paper','Silicone','Replay','Mouth']
   # Add ops to save and restore all the variables.
   saver = tf.train.Saver(max_to_keep=50,)
   with tf.Session(config=config.GPU_CONFIG) as sess:
@@ -88,41 +86,53 @@ def main(argv=None):
     step_per_epoch = int(len(dataset_test.name_list) / config.BATCH_SIZE)
     print('--------------spe------------', len(dataset_test.name_list))    
 #step_per_epoch = 
-    
-    with open(config.LOG_DIR + '/test/score.txt', 'w') as f:
-      for step in range(step_per_epoch):
-        M, s, b, C, T, imname = sess.run([_M, _s, _b, _C, _T, _imname])
+   # for spoof in classes:
+    #  if spoof in str(imname)
+    with open(config.LOG_DIR + '/test/score_spoofwise.txt', 'w') as f:
+      #scores = []
+      #targets = []
+      #M, s, b, C, T, imname = sess.run([_M, _s, _b, _C, _T, _imname])
+      for spoof in classes:
+        scores = []
+        targets = []
+        #M, s, b, C, T, imname = sess.run([_M, _s, _b, _C, _T, _imname])
         ##########################changes here########################
-        #score = (abs(M)+abs(s)+abs(b)+abs(C)+abs(T))/5
-        score = (M+s+b+C+T)/5
-        scores.append(score)
-        if 'live' in str(imname): 
+        
+        for step in range(step_per_epoch):
+          M, s, b, C, T, imname = sess.run([_M, _s, _b, _C, _T, _imname])
+          #scores = []
+          #targets = []
+          if spoof in str(imname) and spoof != 'Live':
+            score = (M+s+b+C+T)/5
+            scores.append(score)
+            print('adding',spoof)
+            targets.append(1)
+          if spoof in str(imname) and spoof=='Live':
+            score = (M+s+b+C+T)/5
+            scores.append(score)
             print('adding live')
-            targets.append(0)
-        elif 'spoof' in str(imname):
-            print('adding spoof')
-            targets.append(1) 
+            targets.append(0) 
         # save the score
-        for i in range(config.BATCH_SIZE):
-            _name = imname[i].decode('UTF-8')
-            _line = _name + ',' + str("{0:.3f}".format(M[i])) + ','\
-                                + str("{0:.3f}".format(s[i])) + ','\
-                                + str("{0:.3f}".format(b[i])) + ','\
-                                + str("{0:.3f}".format(C[i])) + ','\
-                                + str("{0:.3f}".format(T[i]))
-            f.write(_line + '\n')  
-            print(str(step+1)+'/'+str(step_per_epoch)+':'+_line, end='\r')  
-    print("\n")
-  print('_______________metrics____________________')
-  print(np.array(scores), np.array(targets))
-  metrics_, best_thr, acc = eval_from_scores(np.array(scores), np.array(targets))
-  acer, apcer, npcer = metrics_
+          for i in range(config.BATCH_SIZE):
+              _name = imname[i].decode('UTF-8')
+              _line = _name + ',' + str("{0:.3f}".format(M[i])) + ','\
+                                  + str("{0:.3f}".format(s[i])) + ','\
+                                  + str("{0:.3f}".format(b[i])) + ','\
+                                  + str("{0:.3f}".format(C[i])) + ','\
+                                  + str("{0:.3f}".format(T[i]))
+              f.write(_line + '\n')  
+              print(str(step+1)+'/'+str(step_per_epoch)+':'+_line, end='\r')  
+        #print("\n")
+        #print('_______________metrics____________________')
+        #print(np.array(scores), np.array(targets))
+        #metrics_, best_thr, acc = eval_from_scores(np.array(scores), np.array(targets))
+        #acer, apcer, npcer = metrics_
   
-  print(f"ACER: {acer}")
-  print(f"APCER: {apcer}")
-  print(f"NPCER: {npcer}")
-  print(f"Best accuracy: {acc}")
-  print(f"At threshold: {best_thr}")
+        #print(f"ACER: {acer}")
+        #print(f"APCER: {apcer}")
+        #print(f"NPCER: {npcer}")
+        #print(f"Best accuracy: {acc}")
+        #print(f"At threshold: {best_thr}")
 #   return acer, apcer, npcer, acc, best_thr
 
 if __name__ == '__main__':

@@ -119,6 +119,7 @@ def Conv(x, num, scope, training_nn, act=True, norm=True, apply_dropout=False, p
             x = PRelu(x, scope)
         if apply_dropout:
             x = layers.dropout(x, keep_prob=0.7, is_training=training_nn, scope=scope+'/dropout')
+        #print(x.summary())
     return x
 
 def Downsample(x, num, scope, training_nn, padding='SAME', act=True, norm=True, apply_dropout=False):
